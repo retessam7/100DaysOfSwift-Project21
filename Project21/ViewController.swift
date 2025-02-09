@@ -8,7 +8,7 @@
 import UIKit
 import UserNotifications
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UNUserNotificationCenterDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,6 +30,8 @@ class ViewController: UIViewController {
     }
 
     @objc func scheduleLocal() {
+        registerCategories()
+        
         // The combination of content and trigger is enough to be combined into a request
         // each notification also has a unique identifier
         
@@ -41,17 +43,59 @@ class ViewController: UIViewController {
         content.title = "Late wake up call"
         content.body = "The early bird catches the worm, but the second mouse gets the cheese."
         content.categoryIdentifier = "alarm"
+        // To attach custom data to the notification, e.g. an internal ID
         content.userInfo = ["customData": "fizzbuzz"]
         content.sound = UNNotificationSound.default
         
         var dateComponents = DateComponents()
         dateComponents.hour = 10
         dateComponents.minute = 30
+        // let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
-        //let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        
+
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         center.add(request)
     }
+    
+    func registerCategories() {
+        let center = UNUserNotificationCenter.current()
+        //  meaning that any alert-based messages that get sent will be routed to our view controller to be handled
+        center.delegate = self
+        
+        // creates an individual button for the user to tap
+        let show = UNNotificationAction(identifier: "show", title: "Tell me more...", options: .foreground)
+        // groups multiple buttons together under a single identifier
+        let category = UNNotificationCategory(identifier: "alarm", actions: [show], intentIdentifiers: [])
+        
+        center.setNotificationCategories([category])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        // pull out the buried userInfo dictionary
+        let userInfo = response.notification.request.content.userInfo
+        
+        if let customData = userInfo["customData"] as? String {
+            print("Custom data received: \(customData)")
+            
+            // When the user acts on a notification you can read its actionIdentifier property to see what they did
+            switch response.actionIdentifier {
+            case UNNotificationDefaultActionIdentifier:
+                // the user swiped to unlock
+                print("Default identifier")
+                
+            case "show":
+                // the user tapped our "show more info…" button
+                print("Show more information…")
+
+            default:
+                break
+            }
+        }
+        
+        // You must call the completion handler when you're done
+        // This might be much later on, so it’s marked with the @escaping keyword.
+        completionHandler()
+    }
 }
 
+// Our project now creates notifications, attaches them to categories so you can create action buttons, then responds to whichever button was tapped by the user
