@@ -14,7 +14,7 @@ class ViewController: UIViewController, UNUserNotificationCenterDelegate {
         super.viewDidLoad()
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Register", style: .plain, target: self, action: #selector(registerLocal))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Schedule", style: .plain, target: self, action: #selector(scheduleLocal))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Schedule", style: .plain, target: self, action: #selector(scheduleWithTimeInterval))
     }
     
     @objc func registerLocal() {
@@ -29,7 +29,12 @@ class ViewController: UIViewController, UNUserNotificationCenterDelegate {
         }
     }
 
-    @objc func scheduleLocal() {
+    // прослойка между селектором и scheduleLocal для передачи параметра timeInterval
+    @objc func scheduleWithTimeInterval() {
+        scheduleLocal(timeInterval: 5)
+    }
+    
+    func scheduleLocal(timeInterval: TimeInterval) {
         registerCategories()
         
         // The combination of content and trigger is enough to be combined into a request
@@ -51,7 +56,7 @@ class ViewController: UIViewController, UNUserNotificationCenterDelegate {
         dateComponents.hour = 10
         dateComponents.minute = 30
         // let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
 
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         center.add(request)
@@ -64,8 +69,11 @@ class ViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         // creates an individual button for the user to tap
         let show = UNNotificationAction(identifier: "show", title: "Tell me more...", options: .foreground)
+        
+        let remind = UNNotificationAction(identifier: "remind", title: "Remind me later", options: [])
+        
         // groups multiple buttons together under a single identifier
-        let category = UNNotificationCategory(identifier: "alarm", actions: [show], intentIdentifiers: [])
+        let category = UNNotificationCategory(identifier: "alarm", actions: [show, remind], intentIdentifiers: [])
         
         center.setNotificationCategories([category])
     }
@@ -92,6 +100,9 @@ class ViewController: UIViewController, UNUserNotificationCenterDelegate {
                 ac.addAction(UIAlertAction(title: "OK", style: .cancel))
                 
                 present(ac, animated: true)
+                
+            case "remind":
+                scheduleLocal(timeInterval: 10)
 
             default:
                 break
